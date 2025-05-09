@@ -1,0 +1,83 @@
+// ==UserScript==
+// @name         個人空間瘋狂滾動器 + 人工展開輔助器
+// @namespace    http://tampermonkey.net/
+// @version      1.6
+// @description  開啟滾動後自動標記所有“展開全文”，提供人工點擊提示與跳轉定位輔助
+// @match        https://user.qzone.qq.com/*
+// @grant        none
+// ==/UserScript==
+
+(function () {
+    'use strict';
+
+    let scrollInterval = null;
+    const scrollSpeed = 2000;
+    const intervalTime = 30;
+
+    // 滾動按鈕
+    const btnScroll = document.createElement('button');
+    btnScroll.textContent = '🌀 滾動';
+    btnScroll.style.position = 'fixed';
+    btnScroll.style.bottom = '20px';
+    btnScroll.style.right = '20px';
+    btnScroll.style.zIndex = '9999';
+    btnScroll.style.padding = '8px 12px';
+    btnScroll.style.background = '#222';
+    btnScroll.style.color = '#fff';
+    btnScroll.style.border = 'none';
+    btnScroll.style.borderRadius = '6px';
+    btnScroll.style.fontSize = '14px';
+    btnScroll.style.cursor = 'pointer';
+    btnScroll.style.opacity = '0.8';
+
+    let scrolling = false;
+
+    btnScroll.onclick = function () {
+        if (!scrolling) {
+            scrollInterval = setInterval(() => {
+                window.scrollBy(0, scrollSpeed);
+                highlightExpandLinks();
+            }, intervalTime);
+            btnScroll.textContent = '🛑 停止';
+            scrolling = true;
+            console.log('[開始瘋狂滾動 + 標記]');
+        } else {
+            clearInterval(scrollInterval);
+            btnScroll.textContent = '🌀 滾動';
+            scrolling = false;
+            console.log('[停止滾動]');
+        }
+    };
+
+    document.body.appendChild(btnScroll);
+
+    // 高亮並標記所有“展開全文”
+    function highlightExpandLinks() {
+        const links = document.querySelectorAll('a[data-cmd="qz_toggle"]');
+        links.forEach((link, idx) => {
+            if (link.innerText.includes("展开全文") && !link.classList.contains('expand-helper')) {
+                const jumpBtn = document.createElement('button');
+                jumpBtn.textContent = `🔍 展開(${idx + 1})`;
+                jumpBtn.style.marginLeft = '6px';
+                jumpBtn.style.padding = '2px 6px';
+                jumpBtn.style.fontSize = '10px';
+                jumpBtn.style.cursor = 'pointer';
+                jumpBtn.style.background = '#ffcc00';
+                jumpBtn.style.color = '#000';
+                jumpBtn.style.border = '1px solid #999';
+                jumpBtn.style.borderRadius = '3px';
+
+                jumpBtn.onclick = function (e) {
+                    e.stopPropagation();
+                    link.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    link.style.background = '#ffeeaa';
+                    link.style.outline = '2px dashed red';
+                    link.style.transition = 'all 0.3s';
+                };
+
+                link.parentNode.insertBefore(jumpBtn, link.nextSibling);
+                link.classList.add('expand-helper');
+            }
+        });
+    }
+})();
